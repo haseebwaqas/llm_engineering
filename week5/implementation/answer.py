@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_chroma import Chroma
@@ -10,11 +11,21 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-MODEL = "gpt-4.1-nano"
+google_api_key = os.getenv('GOOGLE_API_KEY')
+gemini_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+if google_api_key:
+    print(f"Google API Key exists and begins {google_api_key[:8]}")
+else:
+    print("Google API Key not set")
+
+# MODEL = "gpt-4.1-nano"
+MODEL = "gemini-3.1-flash-lite"
+
 DB_NAME = str(Path(__file__).parent.parent / "vector_db")
 
-# embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 RETRIEVAL_K = 10
 
 SYSTEM_PROMPT = """
@@ -28,8 +39,12 @@ Context:
 
 vectorstore = Chroma(persist_directory=DB_NAME, embedding_function=embeddings)
 retriever = vectorstore.as_retriever()
-llm = ChatOpenAI(temperature=0, model_name=MODEL)
-
+llm = ChatOpenAI(
+    temperature=0,
+    model_name=MODEL,
+    base_url=gemini_url,
+    api_key=google_api_key
+)
 
 def fetch_context(question: str) -> list[Document]:
     """
